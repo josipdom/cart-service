@@ -1,4 +1,5 @@
 using Cart.Application.Abstractions;
+using Cart.Infrastructure.Catalog;
 using Cart.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ public static class DependencyInjection
     {
         services.AddDbContext<CartDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<ICartRepository, CartRepository>();
+        services.AddSingleton<IProductCatalog, StaticProductCatalog>();
 
         return services;
     }
