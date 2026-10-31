@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Cart.Application.Carts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Cart.Api.Controllers;
 
@@ -34,5 +35,5 @@ public sealed class CartsController(ShoppingCartService cartService) : Controlle
     }
 
     private string UserId =>
-        User.FindFirstValue("sub") ?? throw new InvalidOperationException("The token has no 'sub' claim.");
+        User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? throw new InvalidOperationException("The token has no 'sub' claim.");
 }
