@@ -21,5 +21,7 @@ public static class SwaggerExtensions
             {
                 [new OpenApiSecuritySchemeReference(BearerScheme, document)] = []
             });
+
+            options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Cart.Api.xml"));
         });
 }
