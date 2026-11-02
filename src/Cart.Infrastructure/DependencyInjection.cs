@@ -13,6 +13,8 @@ namespace Cart.Infrastructure;
 
 public static class DependencyInjection
 {
+    public const string ReadinessTag = "ready";
+
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<CartDbContext>(options => options.UseNpgsql(GetConnectionString(configuration, "CartDb")));
@@ -39,6 +41,14 @@ public static class DependencyInjection
         services.AddSingleton(_ => new RabbitMqPublisher(GetConnectionString(configuration, "RabbitMq")));
         services.AddHostedService<OutboxProcessor>();
         services.TryAddSingleton(TimeProvider.System);
+
+        services.AddHealthChecks()
+            .AddNpgSql(GetConnectionString(configuration, "CartDb"), name: "postgres", tags: [ReadinessTag])
+            .AddRedis(GetConnectionString(configuration, "Redis"), name: "redis", tags: [ReadinessTag])
+            .AddRabbitMQ(
+                provider => provider.GetRequiredService<RabbitMqPublisher>().GetConnectionAsync(CancellationToken.None),
+                name: "rabbitmq",
+                tags: [ReadinessTag]);
 
         return services;
     }
