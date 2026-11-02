@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Cart.Domain.Events;
 using Cart.Infrastructure.Outbox;
@@ -30,5 +31,17 @@ public class OutboxMessageTests
         var payload = JsonSerializer.Deserialize<CartItemAdded>(message.Payload, JsonSerializerOptions.Web);
 
         Assert.Equal(ItemAdded, payload);
+    }
+
+    [Fact]
+    public void From_DomainEvent_TakesCorrelationIdFromCurrentActivity()
+    {
+        using var activity = new Activity("request")
+            .SetBaggage(OutboxMessage.CorrelationIdBaggage, "order-flow-42")
+            .Start();
+
+        var message = OutboxMessage.From(ItemAdded);
+
+        Assert.Equal("order-flow-42", message.CorrelationId);
     }
 }
