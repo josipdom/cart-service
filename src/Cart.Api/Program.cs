@@ -13,9 +13,7 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(
-    builder.Configuration.GetConnectionString("CartDb")
-        ?? throw new InvalidOperationException("Connection string 'CartDb' is not configured."));
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
