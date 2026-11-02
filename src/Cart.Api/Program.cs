@@ -2,6 +2,7 @@ using Cart.Api.Auth;
 using Cart.Api.Correlation;
 using Cart.Api.Errors;
 using Cart.Api.Health;
+using Cart.Api.RateLimiting;
 using Cart.Api.Swagger;
 using Cart.Application;
 using Cart.Infrastructure;
@@ -18,6 +19,7 @@ builder.Services.AddSwagger();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddPerUserRateLimiting(builder.Configuration);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -41,6 +43,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHealthCheckEndpoints();
