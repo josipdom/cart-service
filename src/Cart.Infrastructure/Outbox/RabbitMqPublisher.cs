@@ -7,6 +7,7 @@ internal sealed class RabbitMqPublisher(string connectionString) : IAsyncDisposa
 {
     public const string Exchange = "cart.events";
 
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private IConnection? _connection;
     private IChannel? _channel;
 
@@ -28,12 +29,30 @@ internal sealed class RabbitMqPublisher(string connectionString) : IAsyncDisposa
             Exchange, message.Type, mandatory: false, properties, Encoding.UTF8.GetBytes(message.Payload), cancellationToken);
     }
 
+    public async Task<IConnection> GetConnectionAsync(CancellationToken cancellationToken)
+    {
+        if (_connection is not null)
+            return _connection;
+
+        await _connectionLock.WaitAsync(cancellationToken);
+        try
+        {
+            var factory = new ConnectionFactory { Uri = new Uri(connectionString), ClientProvidedName = "cart-service" };
+            return _connection ??= await factory.CreateConnectionAsync(cancellationToken);
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_channel is not null)
             await _channel.DisposeAsync();
         if (_connection is not null)
             await _connection.DisposeAsync();
+        _connectionLock.Dispose();
     }
 
     private async Task<IChannel> GetChannelAsync(CancellationToken cancellationToken)
@@ -41,10 +60,8 @@ internal sealed class RabbitMqPublisher(string connectionString) : IAsyncDisposa
         if (_channel is not null)
             return _channel;
 
-        var factory = new ConnectionFactory { Uri = new Uri(connectionString), ClientProvidedName = "cart-service" };
-        _connection ??= await factory.CreateConnectionAsync(cancellationToken);
-
-        var channel = await _connection.CreateChannelAsync(
+        var connection = await GetConnectionAsync(cancellationToken);
+        var channel = await connection.CreateChannelAsync(
             new CreateChannelOptions(publisherConfirmationsEnabled: true, publisherConfirmationTrackingEnabled: true),
             cancellationToken);
         await channel.ExchangeDeclareAsync(Exchange, ExchangeType.Topic, durable: true, cancellationToken: cancellationToken);

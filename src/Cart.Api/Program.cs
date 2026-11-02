@@ -1,5 +1,6 @@
 using Cart.Api.Auth;
 using Cart.Api.Errors;
+using Cart.Api.Health;
 using Cart.Api.Swagger;
 using Cart.Application;
 using Cart.Infrastructure;
@@ -34,5 +35,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthCheckEndpoints();
 
 await app.RunAsync();
