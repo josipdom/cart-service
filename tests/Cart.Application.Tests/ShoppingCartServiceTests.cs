@@ -16,6 +16,7 @@ public class ShoppingCartServiceTests
     private static readonly DateTimeOffset Now = new(2026, 10, 30, 12, 0, 0, TimeSpan.Zero);
 
     private readonly ICartRepository _repository = Substitute.For<ICartRepository>();
+    private readonly ICartCache _cache = Substitute.For<ICartCache>();
     private readonly IProductCatalog _catalog = Substitute.For<IProductCatalog>();
     private readonly ShoppingCartService _service;
 
@@ -31,6 +32,7 @@ public class ShoppingCartServiceTests
 
         _service = new ShoppingCartService(
             _repository,
+            _cache,
             _catalog,
             new AddItemRequestValidator(),
             new ChangeQuantityRequestValidator(),
@@ -45,6 +47,53 @@ public class ShoppingCartServiceTests
         Assert.Empty(cart.Items);
         Assert.Equal(0m, cart.Total);
         await _repository.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetAsync_CartInCache_ReturnsItWithoutReadingRepository()
+    {
+        var cached = new CartDto([new CartItemDto(Keyboard, "Mechanical keyboard", 49.99m, 1, 49.99m)], 49.99m, "EUR");
+        _cache.GetAsync(UserId, Arg.Any<CancellationToken>()).Returns(cached);
+
+        var cart = await _service.GetAsync(UserId, CancellationToken.None);
+
+        Assert.Same(cached, cart);
+        await _repository.DidNotReceive().GetByUserIdAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetAsync_CartNotInCache_ReadsRepositoryAndCachesResult()
+    {
+        GivenExistingCart();
+
+        var cart = await _service.GetAsync(UserId, CancellationToken.None);
+
+        Assert.Single(cart.Items);
+        await _cache.Received(1).SetAsync(UserId, cart, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AddItemAsync_Saved_RemovesCartFromCache()
+    {
+        await _service.AddItemAsync(UserId, new AddItemRequest(Keyboard, 1), CancellationToken.None);
+
+        Received.InOrder(() =>
+        {
+            _repository.SaveChangesAsync(Arg.Any<CancellationToken>());
+            _cache.RemoveAsync(UserId, Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task AddItemAsync_SaveFails_KeepsCache()
+    {
+        _repository.SaveChangesAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new ConcurrencyConflictException(new Exception())));
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(
+            () => _service.AddItemAsync(UserId, new AddItemRequest(Keyboard, 1), CancellationToken.None));
+
+        await _cache.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -161,6 +210,7 @@ public class ShoppingCartServiceTests
 
         Assert.Empty(existing.Items);
         await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _cache.Received(1).RemoveAsync(UserId, Arg.Any<CancellationToken>());
     }
 
     private ShoppingCart GivenExistingCart()
