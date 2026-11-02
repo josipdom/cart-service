@@ -1,10 +1,12 @@
 using Cart.Application.Abstractions;
 using Cart.Infrastructure.Caching;
 using Cart.Infrastructure.Catalog;
+using Cart.Infrastructure.Outbox;
 using Cart.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StackExchange.Redis;
 
 namespace Cart.Infrastructure;
@@ -33,6 +35,10 @@ public static class DependencyInjection
         services.AddSingleton<ICartCache, RedisCartCache>();
 
         services.AddSingleton<IProductCatalog, StaticProductCatalog>();
+
+        services.AddSingleton(_ => new RabbitMqPublisher(GetConnectionString(configuration, "RabbitMq")));
+        services.AddHostedService<OutboxProcessor>();
+        services.TryAddSingleton(TimeProvider.System);
 
         return services;
     }
