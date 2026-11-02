@@ -1,4 +1,5 @@
 using Cart.Api.Auth;
+using Cart.Api.Correlation;
 using Cart.Api.Errors;
 using Cart.Api.Health;
 using Cart.Api.Swagger;
@@ -23,6 +24,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 

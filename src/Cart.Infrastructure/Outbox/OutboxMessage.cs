@@ -6,6 +6,8 @@ namespace Cart.Infrastructure.Outbox;
 
 public sealed class OutboxMessage
 {
+    public const string CorrelationIdBaggage = "correlation_id";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public Guid Id { get; init; }
@@ -21,6 +23,6 @@ public sealed class OutboxMessage
         Type = domainEvent.GetType().Name,
         Payload = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), JsonOptions),
         OccurredAt = domainEvent.OccurredAt,
-        CorrelationId = Activity.Current?.TraceId.ToString()
+        CorrelationId = Activity.Current?.GetBaggageItem(CorrelationIdBaggage)
     };
 }
