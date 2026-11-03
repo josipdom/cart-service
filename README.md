@@ -2,6 +2,8 @@
 
 Shopping cart Web API (.NET 10, PostgreSQL, Redis, RabbitMQ).
 
+Architecture document: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 ## Requirements
 
 - Docker Desktop
