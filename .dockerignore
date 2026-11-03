@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/*.user
+.git/
+.github/
+.vs/
+docs/
+tests/
