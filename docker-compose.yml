@@ -1,4 +1,22 @@
 services:
+  api:
+    build: .
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__CartDb: Host=postgres;Port=5432;Database=cart;Username=cart;Password=cart;Gss Encryption Mode=Disable
+      ConnectionStrings__Redis: redis:6379
+      ConnectionStrings__RabbitMq: amqp://cart:cart@rabbitmq:5672
+      Serilog__WriteTo__Elasticsearch__Args__nodes__0: http://elasticsearch:9200
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine
     environment:
